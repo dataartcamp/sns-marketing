@@ -71,6 +71,8 @@ sns-marketing/
 │               ├── README.md
 │               ├── references/
 │               └── examples/
+│                   ├── quickstart.py         ← 선택: API 연결 테스트
+│                   └── requirements.txt
 └── .gitignore
 ```
 
