@@ -103,19 +103,25 @@ thread_posts[0] += "\n\n#AI자소서"
 
 ## 6. Google Drive URL 패턴
 
-**증상:** Google Drive 공유 링크로 Instagram Reels 발행 시 `영상 URL 필요` 오류
+**증상:** Google Drive 공유 링크 또는 `uc?export=download` URL로 Instagram 이미지 발행 시 `Failed to fetch image dimensions: Not Found` 오류
 
-**원인:** 공유 링크 형식 `drive.google.com/file/d/ID/view`는 직접 다운로드 URL이 아님
+**원인:** `drive.google.com/...` 패턴은 302 redirect 체인을 거쳐 결국 `lh3.googleusercontent.com`으로 가는 구조. 브라우저·`httpx`는 자동으로 redirect를 따라가지만 Buffer의 image fetcher는 redirect에 보수적이라 첫 redirect 응답에서 멈춰 이미지 파일로 인식하지 못한다.
 
 ```python
-# ❌ 공유 링크 (Buffer가 파일로 인식 못 함)
-"https://drive.google.com/file/d/128V3jUY.../view"
+# ❌ 공유 링크 원본 — HTML 페이지로 인식
+"https://drive.google.com/file/d/FILE_ID/view"
 
-# ✅ 직접 다운로드 URL
-"https://drive.google.com/uc?export=download&id=128V3jUY..."
+# △ uc 다운로드 — 일반 fetcher는 OK, Buffer는 redirect 미지원으로 실패 사례 있음
+"https://drive.google.com/uc?export=download&id=FILE_ID"
+
+# ✅ 검증된 안정 패턴 — redirect 없이 PNG 직접 응답
+"https://lh3.googleusercontent.com/d/FILE_ID"
 ```
 
-URL에 확장자가 없는 경우: 확장자 기반 검증을 통과 못 할 수 있음
+> 파일 ID 기반 `lh3.googleusercontent.com/d/<FILE_ID>` 형태는 안정적이다.
+> 만료 위험이 있는 건 Google Photos preview에서 자동 발급되는 일회성 토큰 URL(`lh3.googleusercontent.com/A_...` 같은 알파벳·하이픈 토큰)이며, 형태가 다르다.
+
+URL에 확장자가 없는 경우(lh3 URL이 그렇다): 확장자 기반 검증을 통과 못 할 수 있음
 → 검증 로직에서 알 수 없는 확장자는 허용하고 Buffer에 위임하는 것이 안전
 
 ```python

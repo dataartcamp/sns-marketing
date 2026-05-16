@@ -174,6 +174,38 @@ input = {
 }
 ```
 
+### metadata — X.com (Twitter)
+
+```python
+# 단일 트윗
+"metadata": {
+    "twitter": {}      # 또는 metadata 자체 생략 가능
+}
+
+# 스레드 (캐스케이딩) — 2026-05-16 발행 검증됨
+"metadata": {
+    "twitter": {
+        "thread": [
+            {"text": "두 번째 트윗"},
+            {"text": "세 번째 트윗"},
+            # ... 최대 5~10개 권장
+        ]
+    }
+}
+```
+
+Threads와 동일한 `thread` 배열 패턴이지만 **`type` 필드는 불필요.**
+`text` 필드에 첫 트윗(Hook + 핵심 주장)이 들어가고,
+`metadata.twitter.thread` 배열에 2번부터 마지막까지 순서대로 추가.
+
+**서비스 식별자**: Buffer GraphQL에서 X 채널의 `service` 값은 X 리브랜딩 후에도
+여전히 `"twitter"`로 유지된다. `channels` 쿼리 결과에서 그 값으로 필터.
+
+**글자수 한도** (무료 계정):
+- 각 트윗 **280 weight** (한국어 ≈ 140자, 영문 ≈ 280자)
+- 영문·숫자·ASCII = 1 weight, CJK·이모지 = 2 weight, URL = 23 weight 고정
+- **스레드 안의 각 포스트가 독립적으로 한도 적용** — 합산 아님
+
 ### assets — 미디어 첨부
 
 ```python

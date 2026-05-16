@@ -13,10 +13,10 @@ description: >
 
 Buffer API로 SNS 채널에 콘텐츠를 발행하는 범용 워크플로우.
 
-- GraphQL API 스키마 → `references/graphql-mutations.md`
-- 채널별 제약 → `references/channel-constraints.md`
-- 스케줄링 패턴 → `references/scheduling-patterns.md`
-- 주의사항(함정) → `references/gotchas.md`
+- GraphQL API 스키마 → `../../../references/graphql-mutations.md`
+- 채널별 제약 → `../../../references/channel-constraints.md`
+- 스케줄링 패턴 → `../../../references/scheduling-patterns.md`
+- 주의사항(함정) → `../../../references/gotchas.md`
 
 ## 사전 준비
 
@@ -97,8 +97,8 @@ def buffer_post(text: str, channel_id: str, *, draft: bool = False):
 | Instagram 릴스 | `instagram` | `type: "reel"` | **mp4/mov 필수** |
 | LinkedIn | `linkedin` | — | 선택 |
 
-> 채널별 글자 수 한도·해시태그 전략 → `references/channel-constraints.md`
-> 실수하기 쉬운 함정 → `references/gotchas.md`
+> 채널별 글자 수 한도·해시태그 전략 → `../../../references/channel-constraints.md`
+> 실수하기 쉬운 함정 → `../../../references/gotchas.md`
 
 ## 응답 처리
 
@@ -126,4 +126,4 @@ elif typename == "RestProxyError":
 | 채널당 예약 슬롯 | 10개 | 무제한 |
 | API 요청 | **100건/일** | 더 높음 |
 
-> API 요청 100건/일 한도 관리 전략 → `references/gotchas.md`
+> API 요청 100건/일 한도 관리 전략 → `../../../references/gotchas.md`
