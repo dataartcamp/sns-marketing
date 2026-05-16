@@ -1,7 +1,7 @@
 ---
 name: buffer-publish
 description: >
-  Buffer API(GraphQL)를 사용해 Threads · Instagram · LinkedIn 등 SNS 채널에
+  Buffer API(GraphQL)를 사용해 Threads · Instagram · X.com 등 SNS 채널에
   콘텐츠를 발행/예약/드래프트 저장하는 워크플로우 스킬.
   언어·프레임워크·프로젝트 구조에 무관하게 적용 가능한 일반화 버전.
   사용자가 다음을 언급할 때 이 스킬을 사용하세요:
@@ -95,10 +95,27 @@ def buffer_post(text: str, channel_id: str, *, draft: bool = False):
 | Threads 캐스케이딩 | `threads` | `type: "post"` + `thread: [{text}]` | 선택 |
 | Instagram 피드 | `instagram` | `type: "post"` | **필수** |
 | Instagram 릴스 | `instagram` | `type: "reel"` | **mp4/mov 필수** |
-| LinkedIn | `linkedin` | — | 선택 |
+| X.com 단일 | `twitter` | — (metadata 생략 가능) | 선택 |
+| X.com 스레드 | `twitter` | `thread: [{text}]` | 선택 |
 
 > 채널별 글자 수 한도·해시태그 전략 → `../../../../../references/channel-constraints.md`
 > 실수하기 쉬운 함정 → `../../../../../references/gotchas.md`
+
+## 이미지 발행 전 Pre-flight (선택)
+
+학생이 본인 사진을 Drive에 직접 업로드한 경우, `createPost` 직전에 4가지 검증:
+
+| 항목 | 통과 기준 |
+|------|---------|
+| 파일 크기 | ≤ 8MB (Buffer 한도) |
+| 비율 | 0.8 ~ 1.91 (Instagram 허용 범위) |
+| 해상도 | 긴 변 ≥ 1080px |
+| 포맷 | JPEG, PNG |
+
+위반 시 사용자에게 3선택지(그대로 / 재업로드 / 취소)로 보고. 검증 코드와 실측 예시 →
+[`references/image-preflight.md`](references/image-preflight.md)
+
+Gemini로 생성한 이미지는 4가지 모두 통과 → 그대로 발행. 학생 사진은 결과 보고 결정.
 
 ## 응답 처리
 

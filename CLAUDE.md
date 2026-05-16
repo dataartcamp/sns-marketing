@@ -30,10 +30,11 @@ Every skill is mirrored at two paths so both editors auto-discover it:
 
 `buffer-publish` pulls from repo-root `references/` and `examples/` (kept at the root so `quickstart.py` is one-click for students). `contents-creator` is **self-contained** — only `SKILL.md` + `README.md` inside each skill folder, no external links — so its two copies can be byte-identical clones.
 
-| Skill | Self-contained? | Mirror strategy |
-|-------|----------------|-----------------|
-| `buffer-publish` | No — links to `references/*.md` at repo root | Content identical, **relative-path prefix differs** (see below) |
-| `contents-creator` | Yes | Byte-identical (`cp` works) |
+| Skill | references 위치 | Mirror strategy |
+|-------|---------------|-----------------|
+| `buffer-publish` — 채널·API SPEC | repo-root `references/*.md` | Content identical, **relative-path depth differs** (.claude `../../../`, .gemini `../../../../../`) |
+| `buffer-publish` — 발행 검증 (`image-preflight.md`) | 스킬 안 `references/` | Byte-identical — 두 미러 모두 같은 `references/...` 상대경로 |
+| `contents-creator` | (외부 references 없음) | Byte-identical (`cp` works) |
 
 ### `buffer-publish` relative-path quirk
 

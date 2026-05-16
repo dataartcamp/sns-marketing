@@ -201,3 +201,29 @@ elif result["__typename"] == "MutationError":
 elif result["__typename"] == "RestProxyError":
     raise Exception(f"채널 오류: {result['link']}")
 ```
+
+---
+
+## 10. 이미지 8MB 한도 초과 — 휴대폰 원본 사진의 가장 흔한 함정
+
+**증상:** 휴대폰에서 찍은 원본 사진을 Drive에 그대로 올려 발행 시도 → Buffer가 거부하거나 발행 단계에서 실패
+
+**원인:** Buffer는 이미지에 **8MB 한도**를 적용한다. 휴대폰 카메라의 12MP 원본 JPG는 보통 5~12MB 사이라 한도 초과가 흔하다. Instagram이 자동 다운스케일하는 영역이 아니라 Buffer 단계에서 막힌다.
+
+```python
+# ❌ 휴대폰 원본 그대로 — 8MB 초과 가능
+"https://lh3.googleusercontent.com/d/<원본_FILE_ID>"  # 8~12MB
+
+# ✅ 업로드 전 Pillow로 1080×1350 4:5 + JPG 85% quality로 압축
+from PIL import Image, ImageOps
+img = Image.open("phone_original.jpg")
+img = ImageOps.fit(img, (1080, 1350), method=Image.LANCZOS, centering=(0.5, 0.4))
+img.save("instagram_ready.jpg", "JPEG", quality=85, optimize=True)
+# → 보통 200~500KB로 압축, 화질 거의 동일
+```
+
+**예방책:**
+- 업로드 전에 1080×1350 (Instagram 4:5) 또는 1080×1080 (1:1)로 미리 리사이즈
+- JPG quality 85% 정도면 화질 거의 안 떨어지면서 파일 크기 1MB 이하로 압축
+- Gemini로 생성한 이미지는 출력이 1~2MB 수준이라 한도 안전
+- `centering=(0.5, 0.4)` 옵션으로 약간 위쪽 기준 크롭 → 인물 사진의 머리 보존
