@@ -59,28 +59,69 @@ variables["input"]["channelId"] = "threads"  # service 이름 불가
 
 ---
 
-## 4. API 요청 100건/일 한도 (무료 플랜)
+## 4. API 요청 다층 rate limit (무료 플랜)
 
-**증상:** 429 Too Many Requests, `Retry-After` 헤더에 남은 초 표시
+**증상:** 429 Too Many Requests
 
-**원인:** API key 단위로 하루 100회 제한. 자정(UTC)에 초기화.
+**원인:** API key 단위로 **3개 윈도우가 동시 적용**된다. 가장 빨리 차는 윈도우가 병목이다 — 단순 "100건/일" 한도가 아니다.
 
-```python
-# Retry-After 헤더 파싱
-resp = httpx.post(...)
-if resp.status_code == 429:
-    retry_after = int(resp.headers.get("retry-after", 3600))
-    print(f"{retry_after // 3600}시간 {(retry_after % 3600) // 60}분 후 재시도 가능")
+| 윈도우 | 한도 |
+|--------|-----:|
+| 15분 | 100 |
+| 1일 | 100 |
+| 30일 | 3,000 |
 
-# 현재 한도 확인
-remaining = resp.headers.get("x-ratelimit-remaining")  # 남은 횟수
-reset_ts = resp.headers.get("x-ratelimit-reset")       # Unix timestamp
+흔한 오해 두 가지:
+1. "100건/일"만 신경 쓰다가 **15분 burst 한도**에 걸린다 — 디버깅 중 짧은 시간에 여러 번 호출 시 흔함
+2. `x-ratelimit-remaining` 헤더만 보다가 안심한다 — 그 헤더는 **30일 윈도우 잔량만** 보여줘 misleading
+
+### 정확한 측정 — 표준 `ratelimit` 헤더 사용
+
+Buffer는 IETF RFC 9239 표준 `ratelimit` 헤더로 3개 윈도우 모두 노출한다. **이 헤더가 진짜다.**
+
+```
+ratelimit: "100-in-15min"; r=97; t=832,
+           "100-in-1day";  r=82; t=12277,
+           "3000-in-30days"; r=2982; t=2517878
 ```
 
-**예방책:**
-- 채널 ID 캐싱 (조회 횟수 감소)
-- eval/테스트 시 mock 사용 또는 요청 수 사전 계산
-- 한 번에 많은 에이전트를 동시 실행하지 말 것
+- `r=` 잔량
+- `t=` 리셋까지 남은 초
+
+```python
+import re
+
+def parse_buffer_limits(resp):
+    """Buffer의 다층 rate limit을 dict로 파싱."""
+    h = resp.headers.get("ratelimit", "")
+    out = {}
+    for part in re.split(r',\s*(?=")', h):
+        m = re.match(r'"([^"]+)";\s*r=(\d+);\s*t=(\d+)', part.strip())
+        if m:
+            out[m.group(1)] = {
+                "remaining": int(m.group(2)),
+                "reset_in_seconds": int(m.group(3)),
+            }
+    return out
+
+# 사용
+limits = parse_buffer_limits(resp)
+print(limits["100-in-1day"])
+# → {"remaining": 82, "reset_in_seconds": 12277}
+
+# 가장 빠듯한 윈도우
+tightest = min(limits.items(), key=lambda kv: kv[1]["remaining"])
+print(f"가장 빠듯: {tightest[0]} — {tightest[1]['remaining']} 남음")
+```
+
+429 응답에는 `Retry-After` 헤더도 같이 옴 — 그대로 sleep하면 된다.
+
+### 예방책
+
+- **채널 ID 캐싱** — `account` + `channels` 쿼리는 1회만, 결과를 파일/DB에 저장
+- **15분 burst 주의** — 짧은 시간 안에 발행 시도 여러 번 하지 말 것 (디버깅 중 흔한 함정)
+- **테스트·eval 시 `saveToDraft=True`** — 실제 발행은 안 되지만 요청은 카운트되므로 호출 수는 사전에 계산
+- **여러 에이전트가 같은 API key 공유 금지** — 한도가 합산되어 빠르게 소진
 
 ---
 
